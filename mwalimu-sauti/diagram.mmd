@@ -1,0 +1,5 @@
+flowchart LR
+    UI[index.html<br/>mic + audio playback<br/>vanilla JS] -->|/ask| API[FastAPI backend]
+    API -->|holds az token<br/>runs the 4-call chain| PAZA[Paza API]
+    API -->|tutor| LLM[LLM]
+    PAZA --> API --> UI
