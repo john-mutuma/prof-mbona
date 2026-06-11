@@ -3,11 +3,12 @@
 import { useState, useCallback } from "react";
 import MicButton from "@/components/MicButton";
 import TextInput from "@/components/TextInput";
-import TopicSelector from "@/components/TopicSelector";
+import LanguageSelector from "@/components/LanguageSelector";
 import ConversationThread, { Message } from "@/components/ConversationThread";
 import AudioPlayer from "@/components/AudioPlayer";
 import PipelineStatus from "@/components/PipelineStatus";
 import { TOPICS, Topic } from "@/lib/curriculum";
+import { Language, SUPPORTED_LANGUAGES } from "@/lib/languages";
 
 type Stage =
   | "idle"
@@ -27,51 +28,34 @@ interface ConversationEntry {
 }
 
 export default function Home() {
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string>("");
   const [latestAudio, setLatestAudio] = useState<string | null>(null);
   const [history, setHistory] = useState<ConversationEntry[]>([]);
   const [inputMode, setInputMode] = useState<InputMode>("voice");
-
-  const handleTopicSelect = (topic: Topic) => {
-    setSelectedTopic(topic);
-    setMessages([]);
-    setHistory([]);
-    setLatestAudio(null);
-    setStage("idle");
-    setError("");
-  };
-
-  const handleBack = () => {
-    setSelectedTopic(null);
-    setMessages([]);
-    setHistory([]);
-    setLatestAudio(null);
-    setStage("idle");
-    setError("");
-  };
+  const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
+  const [language, setLanguage] = useState<Language>(SUPPORTED_LANGUAGES[0]); // Default: Kikuyu
 
   const handleResponse = useCallback(
     (data: {
-      childTextKik: string;
+      childTextLocal: string;
       childTextEn: string;
       tutorTextEn: string;
-      tutorTextKik: string;
+      tutorTextLocal: string;
       audioBase64: string;
     }) => {
       const childMsg: Message = {
         id: `child-${Date.now()}`,
         type: "child",
-        textKik: data.childTextKik,
+        textKik: data.childTextLocal,
         textEn: data.childTextEn,
       };
 
       const tutorMsg: Message = {
         id: `tutor-${Date.now()}`,
         type: "tutor",
-        textKik: data.tutorTextKik,
+        textKik: data.tutorTextLocal,
         textEn: data.tutorTextEn,
         audioBase64: data.audioBase64,
       };
@@ -103,8 +87,6 @@ export default function Home() {
 
   const handleRecordingComplete = useCallback(
     async (blob: Blob) => {
-      if (!selectedTopic) return;
-
       setStage("transcribing");
       setError("");
       setLatestAudio(null);
@@ -112,7 +94,8 @@ export default function Home() {
       try {
         const formData = new FormData();
         formData.append("audio", blob, "audio.webm");
-        formData.append("topic", selectedTopic.id);
+        formData.append("language", language.code);
+        if (activeTopic) formData.append("topic", activeTopic.id);
         formData.append("history", JSON.stringify(history));
 
         setStage("thinking");
@@ -134,13 +117,11 @@ export default function Home() {
         handleError(err);
       }
     },
-    [selectedTopic, history, handleResponse, handleError]
+    [history, activeTopic, language, handleResponse, handleError]
   );
 
   const handleTextSubmit = useCallback(
     async (text: string, lang: "en" | "kik") => {
-      if (!selectedTopic) return;
-
       setStage("thinking");
       setError("");
       setLatestAudio(null);
@@ -148,8 +129,10 @@ export default function Home() {
       try {
         const formData = new FormData();
         formData.append("text", text);
-        formData.append("inputLang", lang);
-        formData.append("topic", selectedTopic.id);
+        // If user selected "kik" in TextInput, map to the actual selected language code
+        formData.append("inputLang", lang === "kik" ? language.code : "en");
+        formData.append("language", language.code);
+        if (activeTopic) formData.append("topic", activeTopic.id);
         formData.append("history", JSON.stringify(history));
 
         const response = await fetch("/api/listen", {
@@ -169,57 +152,86 @@ export default function Home() {
         handleError(err);
       }
     },
-    [selectedTopic, history, handleResponse, handleError]
+    [history, activeTopic, language, handleResponse, handleError]
   );
 
+  const handleTopicSuggestion = (topic: Topic) => {
+    setActiveTopic(topic);
+    handleTextSubmit(topic.title + "?", "en");
+  };
+
   const isProcessing = stage !== "idle" && stage !== "done" && stage !== "error";
+  const hasMessages = messages.length > 0;
 
-  // Topic selection screen
-  if (!selectedTopic) {
-    return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-gradient-to-b from-emerald-50 to-white p-6">
-        <TopicSelector topics={TOPICS} onSelect={handleTopicSelect} />
-      </div>
-    );
-  }
-
-  // Conversation screen
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 shadow-sm">
-        <button
-          onClick={handleBack}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          aria-label="Back to topics"
-        >
-          <svg
-            className="w-5 h-5 text-gray-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <div className="flex-1">
-          <h1 className="font-semibold text-gray-800 text-sm">
-            {selectedTopic.icon} {selectedTopic.title}
-          </h1>
-          <p className="text-xs text-emerald-600">{selectedTopic.titleKikuyu}</p>
+      <header className="flex flex-col gap-2 px-4 py-3 bg-white border-b border-gray-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <h1 className="font-bold text-gray-800 text-lg">
+              Professor Mbona
+            </h1>
+            <p className="text-xs text-emerald-600">
+              Ask anything — speak or type in English or {language.name}
+            </p>
+          </div>
+          {activeTopic && (
+            <button
+              onClick={() => setActiveTopic(null)}
+              className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
+              title="Clear topic focus"
+            >
+              {activeTopic.icon} {activeTopic.title} ✕
+            </button>
+          )}
         </div>
-        <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
-          Kikuyu
-        </span>
+        {/* Language selector */}
+        <LanguageSelector selected={language} onChange={setLanguage} />
       </header>
 
-      {/* Conversation */}
-      <ConversationThread messages={messages} />
+      {/* Conversation or welcome */}
+      {hasMessages ? (
+        <ConversationThread messages={messages} />
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+          <p className="text-5xl mb-4">👨‍🏫</p>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            Habari! I&apos;m Professor Mbona
+          </h2>
+          <p className="text-gray-500 text-center mb-8 max-w-sm">
+            Ask me any question — about science, math, nature, anything!
+            Speak in {language.name} or type in English.
+          </p>
+
+          {/* Suggested topics */}
+          <div className="w-full max-w-sm">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-3 text-center">
+              Try asking about...
+            </p>
+            <div className="grid gap-2">
+              {TOPICS.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={() => handleTopicSuggestion(topic)}
+                  disabled={isProcessing}
+                  className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-100
+                             hover:border-emerald-200 hover:bg-emerald-50 transition-all text-left
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="text-2xl">{topic.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      {topic.title}
+                    </p>
+                    <p className="text-xs text-gray-400">{topic.titleKikuyu}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Audio player (replay) */}
       <AudioPlayer audioBase64={latestAudio} />
@@ -262,7 +274,12 @@ export default function Home() {
             <div className="h-4" />
           </div>
         ) : (
-          <TextInput onSubmit={handleTextSubmit} disabled={isProcessing} />
+          <TextInput
+            onSubmit={handleTextSubmit}
+            disabled={isProcessing}
+            languageName={language.name}
+            languageCode={language.code}
+          />
         )}
       </div>
     </div>

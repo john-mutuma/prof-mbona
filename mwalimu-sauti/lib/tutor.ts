@@ -1,4 +1,4 @@
-import { AzureOpenAI } from "openai";
+import OpenAI from "openai";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -40,23 +40,19 @@ function buildSystemPrompt(topic?: string, facts?: string[]): string {
   );
 }
 
-let client: AzureOpenAI | null = null;
+let client: OpenAI | null = null;
 
-function getClient(): AzureOpenAI {
+function getClient(): OpenAI {
   if (!client) {
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-    const apiKey = process.env.AZURE_OPENAI_API_KEY;
+    const token = process.env.GITHUB_TOKEN;
 
-    if (!endpoint || !apiKey) {
-      throw new Error(
-        "AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY must be set in .env.local"
-      );
+    if (!token) {
+      throw new Error("GITHUB_TOKEN must be set in .env.local");
     }
 
-    client = new AzureOpenAI({
-      endpoint,
-      apiKey,
-      apiVersion: "2024-08-01-preview",
+    client = new OpenAI({
+      baseURL: "https://models.inference.ai.azure.com",
+      apiKey: token,
     });
   }
   return client;
@@ -76,7 +72,7 @@ export async function askTutor(
   history: ChatMessage[] = []
 ): Promise<string> {
   const openai = getClient();
-  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o-mini";
+  const model = process.env.LLM_MODEL || "gpt-4o-mini";
 
   const systemPrompt = buildSystemPrompt(topicTitle, facts);
 
@@ -87,7 +83,7 @@ export async function askTutor(
   ];
 
   const response = await openai.chat.completions.create({
-    model: deployment,
+    model,
     messages,
     max_tokens: 200,
     temperature: 0.7,
@@ -95,7 +91,7 @@ export async function askTutor(
 
   const answer = response.choices[0]?.message?.content;
   if (!answer) {
-    throw new Error("No response from Azure OpenAI");
+    throw new Error("No response from LLM");
   }
 
   return answer.trim();

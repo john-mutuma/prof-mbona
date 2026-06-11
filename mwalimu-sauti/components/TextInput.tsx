@@ -5,9 +5,18 @@ import { useState, useRef } from "react";
 interface TextInputProps {
   onSubmit: (text: string, lang: "en" | "kik") => void;
   disabled?: boolean;
+  /** Name of the selected local language (e.g. "Kikuyu", "Swahili") */
+  languageName?: string;
+  /** Short code for display (e.g. "KIK", "SWH") */
+  languageCode?: string;
 }
 
-export default function TextInput({ onSubmit, disabled = false }: TextInputProps) {
+export default function TextInput({
+  onSubmit,
+  disabled = false,
+  languageName = "Kikuyu",
+  languageCode = "KIK",
+}: TextInputProps) {
   const [text, setText] = useState("");
   const [lang, setLang] = useState<"en" | "kik">("en");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,9 +38,9 @@ export default function TextInput({ onSubmit, disabled = false }: TextInputProps
         onClick={() => setLang(lang === "en" ? "kik" : "en")}
         className="shrink-0 px-2 py-1.5 text-xs font-semibold rounded-md border border-gray-200 
                    bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors uppercase"
-        title={`Input language: ${lang === "en" ? "English" : "Kikuyu"}`}
+        title={`Input language: ${lang === "en" ? "English" : languageName}`}
       >
-        {lang === "en" ? "EN" : "KIK"}
+        {lang === "en" ? "EN" : languageCode.toUpperCase()}
       </button>
 
       {/* Text input */}
@@ -44,7 +53,7 @@ export default function TextInput({ onSubmit, disabled = false }: TextInputProps
         placeholder={
           lang === "en"
             ? "Type your question in English..."
-            : "Andĩka kĩũria gĩaku (Kikuyu)..."
+            : `Type in ${languageName}...`
         }
         className="flex-1 px-4 py-2.5 rounded-full border border-gray-200 bg-white
                    text-sm text-gray-800 placeholder:text-gray-400
