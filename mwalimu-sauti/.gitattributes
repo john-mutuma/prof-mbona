@@ -1,0 +1,11 @@
+# Force UTF-8 and LF line endings for all text files
+* text=auto eol=lf
+
+# Ensure these are always treated as UTF-8 text
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.html text eol=lf

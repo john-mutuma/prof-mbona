@@ -10,6 +10,15 @@ import PipelineStatus from "@/components/PipelineStatus";
 import { TOPICS, Topic } from "@/lib/curriculum";
 import { Language, SUPPORTED_LANGUAGES } from "@/lib/languages";
 
+// Emoji constants using Unicode escapes to avoid encoding issues on Windows
+const EMOJI = {
+  teacher: "\uD83D\uDC68\u200D\uD83C\uDFEB",
+  mic: "\uD83C\uDF99\uFE0F",
+  keyboard: "\u2328\uFE0F",
+  warning: "\u26A0\uFE0F",
+  close: "\u2715",
+};
+
 type Stage =
   | "idle"
   | "recording"
@@ -35,7 +44,7 @@ export default function Home() {
   const [history, setHistory] = useState<ConversationEntry[]>([]);
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
-  const [language, setLanguage] = useState<Language>(SUPPORTED_LANGUAGES[0]); // Default: Kikuyu
+  const [language, setLanguage] = useState<Language>(SUPPORTED_LANGUAGES[0]);
 
   const handleResponse = useCallback(
     (data: {
@@ -74,6 +83,15 @@ export default function Home() {
     },
     []
   );
+
+  const handleReset = () => {
+    setMessages([]);
+    setHistory([]);
+    setLatestAudio(null);
+    setStage("idle");
+    setError("");
+    setActiveTopic(null);
+  };
 
   const handleError = useCallback((err: unknown) => {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -129,7 +147,6 @@ export default function Home() {
       try {
         const formData = new FormData();
         formData.append("text", text);
-        // If user selected "kik" in TextInput, map to the actual selected language code
         formData.append("inputLang", lang === "kik" ? language.code : "en");
         formData.append("language", language.code);
         if (activeTopic) formData.append("topic", activeTopic.id);
@@ -166,32 +183,49 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <header className="flex flex-col gap-2 px-4 py-3 bg-white border-b border-gray-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <h1 className="font-bold text-gray-800 text-lg">
-              Professor Mbona
-            </h1>
-            <p className="text-xs text-emerald-600">
-              Ask anything — speak or type in English or {language.name}
+      <header className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3">
+          {/* Logo / title - clickable to reset */}
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            title="Back to home"
+          >
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-lg">
+              {EMOJI.teacher}
+            </div>
+            <div className="text-left">
+              <h1 className="font-bold text-gray-900 text-base leading-tight">
+                Professor Mbona
+              </h1>
+              <p className="text-xs text-gray-500">
+                Speak or Type in {language.name}
+              </p>
+            </div>
+          </button>
+
+          {/* Right side controls */}
+          <div className="flex items-center gap-2">
+            {activeTopic && (
+              <button
+                onClick={() => setActiveTopic(null)}
+                className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
+                title="Clear topic focus"
+              >
+                {activeTopic.icon} <span className="hidden sm:inline">{activeTopic.title}</span> {EMOJI.close}
+              </button>
+            )}
+            <LanguageSelector selected={language} onChange={setLanguage} />
+          </div>
+        </div>
+
+        {/* Warning banner for partial language support */}
+        {language.note && (
+          <div className="px-4 pb-2">
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-lg">
+              {EMOJI.warning} {language.name}: {language.note}
             </p>
           </div>
-          {activeTopic && (
-            <button
-              onClick={() => setActiveTopic(null)}
-              className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-              title="Clear topic focus"
-            >
-              {activeTopic.icon} {activeTopic.title} ✕
-            </button>
-          )}
-        </div>
-        {/* Language selector */}
-        <LanguageSelector selected={language} onChange={setLanguage} />
-        {language.note && (
-          <p className="text-[11px] text-amber-600 bg-amber-50 px-2 py-1 rounded">
-            ⚠️ {language.name}: {language.note}
-          </p>
         )}
       </header>
 
@@ -200,13 +234,13 @@ export default function Home() {
         <ConversationThread messages={messages} />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
-          <p className="text-5xl mb-4">👨‍🏫</p>
+          <p className="text-5xl mb-4">{EMOJI.teacher}</p>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">
             Habari! I&apos;m Professor Mbona
           </h2>
           <p className="text-gray-500 text-center mb-8 max-w-sm">
-            Ask me any question — about science, math, nature, anything!
-            Speak in {language.name} or type in English.
+            Ask me any question {"\u2014"} about science, math, nature, anything!
+            Speak or type in {language.name}.
           </p>
 
           {/* Suggested topics */}
@@ -255,7 +289,7 @@ export default function Home() {
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            🎤 Voice
+            {EMOJI.mic} Voice
           </button>
           <button
             onClick={() => setInputMode("text")}
@@ -265,7 +299,7 @@ export default function Home() {
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            ⌨️ Text
+            {EMOJI.keyboard} Text
           </button>
         </div>
 

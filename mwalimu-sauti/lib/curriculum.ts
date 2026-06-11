@@ -11,9 +11,9 @@ export const TOPICS: Topic[] = [
   {
     id: "fermentation",
     title: "Why Milk Goes Sour",
-    titleKikuyu: "Nĩkĩĩ iria rĩũmagwo?",
+    titleKikuyu: "N\u0129k\u0129\u0129 iria r\u0129\u0169magwo?",
     description: "Learn about fermentation and bacteria",
-    icon: "🥛",
+    icon: "\uD83E\uDD5B",
     facts: [
       "Milk contains a natural sugar called lactose. Tiny living things called bacteria feed on this sugar.",
       "When bacteria eat lactose, they produce lactic acid. This acid makes the milk taste sour and thick.",
@@ -25,9 +25,9 @@ export const TOPICS: Topic[] = [
   {
     id: "combustion",
     title: "Why Fire Needs Air",
-    titleKikuyu: "Nĩkĩĩ mwaki ũkũndaga rũhuho?",
+    titleKikuyu: "N\u0129k\u0129\u0129 mwaki \u0169k\u0169ndaga r\u0169huho?",
     description: "Learn about combustion and oxygen",
-    icon: "🔥",
+    icon: "\uD83D\uDD25",
     facts: [
       "Fire needs three things to burn: fuel (like wood or charcoal), heat (a spark or match), and air. We call these three things the fire triangle.",
       "The part of air that fire uses is a gas called oxygen. Air is made of many gases, but oxygen is the one fire needs.",
@@ -39,9 +39,9 @@ export const TOPICS: Topic[] = [
   {
     id: "photosynthesis",
     title: "Why Plants Are Green",
-    titleKikuyu: "Nĩkĩĩ mĩtĩ ĩrĩ ya rangi wa kĩbiriti?",
+    titleKikuyu: "N\u0129k\u0129\u0129 m\u0129t\u0129 \u0129r\u0129 ya rangi wa k\u0129biriti?",
     description: "Learn about photosynthesis and chlorophyll",
-    icon: "🌱",
+    icon: "\uD83C\uDF31",
     facts: [
       "Plants have a special green substance in their leaves called chlorophyll. This is what makes leaves look green.",
       "Chlorophyll captures sunlight, like a solar panel. Plants use this sunlight energy to make their own food from water and air.",

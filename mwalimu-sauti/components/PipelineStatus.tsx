@@ -5,15 +5,15 @@ interface PipelineStatusProps {
   error?: string;
 }
 
-const STAGE_LABELS: Record<string, { label: string; emoji: string }> = {
-  idle: { label: "Ready", emoji: "✨" },
-  recording: { label: "Listening...", emoji: "👂" },
-  transcribing: { label: "Understanding your words...", emoji: "📝" },
-  thinking: { label: "Professor is thinking...", emoji: "🤔" },
-  translating: { label: "Translating to Kikuyu...", emoji: "🔄" },
-  speaking: { label: "Preparing voice...", emoji: "🔊" },
-  done: { label: "Done!", emoji: "✅" },
-  error: { label: "Something went wrong", emoji: "⚠️" },
+const STAGE_LABELS: Record<string, { label: string; icon: string }> = {
+  idle: { label: "Ready", icon: "\u2728" },
+  recording: { label: "Listening...", icon: "\uD83D\uDC42" },
+  transcribing: { label: "Understanding your words...", icon: "\uD83D\uDCDD" },
+  thinking: { label: "Professor is thinking...", icon: "\uD83E\uDD14" },
+  translating: { label: "Translating...", icon: "\uD83D\uDD04" },
+  speaking: { label: "Preparing voice...", icon: "\uD83D\uDD0A" },
+  done: { label: "Done!", icon: "\u2705" },
+  error: { label: "Something went wrong", icon: "\u26A0\uFE0F" },
 };
 
 export default function PipelineStatus({ stage, error }: PipelineStatusProps) {
@@ -27,7 +27,7 @@ export default function PipelineStatus({ stage, error }: PipelineStatusProps) {
       ${stage === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}
     `}
     >
-      <span className="text-lg">{info.emoji}</span>
+      <span className="text-lg">{info.icon}</span>
       <span>{error || info.label}</span>
       {stage !== "done" && stage !== "error" && (
         <span className="inline-block w-4 h-4 border-2 border-emerald-300 border-t-emerald-700 rounded-full animate-spin" />

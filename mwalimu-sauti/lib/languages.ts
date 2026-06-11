@@ -1,6 +1,8 @@
 /**
  * Language support configuration for Professor Mbona.
  * Maps each language to its available Paza API capabilities.
+ *
+ * All strings use Unicode escape sequences to avoid encoding issues on Windows.
  */
 export interface Language {
   code: string;
@@ -24,19 +26,19 @@ export interface Language {
  * Capability matrix:
  * | Lang     | ASR | Translate | TTS |
  * |----------|-----|-----------|-----|
- * | Kikuyu   | ✓   | ✓         | ✓   |
- * | Swahili  | ✓   | ✓         | ✓   |
- * | Somali   | ✓   | ✓         | ✓   |
- * | Kalenjin | ✓   | ✗         | ✓   |
- * | Maasai   | ✓   | ✗         | ✓   |
- * | Dholuo   | ✓   | ✓         | ✗   |
+ * | Kikuyu   | yes | yes       | yes |
+ * | Swahili  | yes | yes       | yes |
+ * | Somali   | yes | yes       | yes |
+ * | Kalenjin | yes | no        | yes |
+ * | Maasai   | yes | no        | yes |
+ * | Dholuo   | yes | yes       | no  |
  */
 export const SUPPORTED_LANGUAGES: Language[] = [
   {
     code: "kik",
     name: "Kikuyu",
-    nativeName: "Gĩkũyũ",
-    flag: "🇰🇪",
+    nativeName: "G\u0129k\u0169y\u0169",
+    flag: "\uD83C\uDDF0\uD83C\uDDEA",
     hasASR: true,
     hasTranslate: true,
     hasTTS: true,
@@ -45,7 +47,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     code: "swh",
     name: "Swahili",
     nativeName: "Kiswahili",
-    flag: "🇰🇪",
+    flag: "\uD83C\uDDF0\uD83C\uDDEA",
     hasASR: true,
     hasTranslate: true,
     hasTTS: true,
@@ -54,7 +56,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     code: "som",
     name: "Somali",
     nativeName: "Soomaali",
-    flag: "🇸🇴",
+    flag: "\uD83C\uDDF8\uD83C\uDDF4",
     hasASR: true,
     hasTranslate: true,
     hasTTS: true,
@@ -63,7 +65,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     code: "kln",
     name: "Kalenjin",
     nativeName: "Kalenjin",
-    flag: "🇰🇪",
+    flag: "\uD83C\uDDF0\uD83C\uDDEA",
     hasASR: true,
     hasTranslate: false,
     hasTTS: true,
@@ -73,7 +75,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     code: "mas",
     name: "Maasai",
     nativeName: "Maa",
-    flag: "🇰🇪",
+    flag: "\uD83C\uDDF0\uD83C\uDDEA",
     hasASR: true,
     hasTranslate: false,
     hasTTS: true,
@@ -83,7 +85,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     code: "luo",
     name: "Dholuo",
     nativeName: "Dholuo",
-    flag: "🇰🇪",
+    flag: "\uD83C\uDDF0\uD83C\uDDEA",
     hasASR: true,
     hasTranslate: true,
     hasTTS: false,

@@ -14,7 +14,7 @@ export default function TopicSelector({ topics, onSelect }: TopicSelectorProps) 
         Professor Mbona
       </h2>
       <p className="text-center text-gray-500 mb-1 text-lg">
-        Voice Teacher / Mwarimu wa Mũgambo
+        Voice Teacher / Mwarimu wa M{"\u0169"}gambo
       </p>
       <p className="text-center text-gray-400 mb-8 text-sm">
         Choose a topic to learn about. Speak in Kikuyu and hear answers in Kikuyu!

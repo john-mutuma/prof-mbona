@@ -29,7 +29,7 @@ export default function ConversationThread({
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400 text-center p-8">
         <div>
-          <p className="text-5xl mb-4">🎤</p>
+          <p className="text-5xl mb-4">{"\uD83C\uDF99\uFE0F"}</p>
           <p className="text-lg">Tap the microphone and ask a question!</p>
           <p className="text-sm mt-2">Speak in Kikuyu</p>
         </div>
@@ -59,7 +59,7 @@ export default function ConversationThread({
                 msg.type === "child" ? "text-emerald-600" : "text-amber-600"
               }`}
             >
-              {msg.type === "child" ? "You (Wee)" : "Professor 👨‍🏫"}
+              {msg.type === "child" ? "You (Wee)" : `Professor ${"\uD83D\uDC68\u200D\uD83C\uDFEB"}`}
             </p>
 
             {/* Primary text (Kikuyu) */}

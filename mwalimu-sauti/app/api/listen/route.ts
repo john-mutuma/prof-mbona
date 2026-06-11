@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Topic is optional — if provided, we use curriculum facts for grounding
+    // Topic is optional - if provided, we use curriculum facts for grounding
     const topic = topicId ? getTopicById(topicId) : undefined;
 
     // Parse conversation history if provided
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       if (language.hasTranslate) {
         childTextEn = await translate(childTextLocal, languageCode, "en");
       } else {
-        // No NLLB — provide both to the LLM, it will interpret
+        // No NLLB - provide both to the LLM, it will interpret
         childTextEn = childTextLocal;
       }
     } else {
