@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { transcribe, translate, textToSpeech } from "@/lib/paza";
 import { askTutor, ChatMessage } from "@/lib/tutor";
 import { getTopicById } from "@/lib/curriculum";
+import { getLanguageByCode } from "@/lib/languages";
 
 export const maxDuration = 60; // Allow up to 60s for the full chain
-
-// Languages that support the full pipeline
-const FULL_PIPELINE_LANGUAGES = ["kik", "swh", "som"];
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +12,7 @@ export async function POST(request: NextRequest) {
     const audioFile = formData.get("audio") as File | null;
     const textInput = formData.get("text") as string | null;
     const inputLang = (formData.get("inputLang") as string) || "en";
-    const language = (formData.get("language") as string) || "kik";
+    const languageCode = (formData.get("language") as string) || "kik";
     const topicId = formData.get("topic") as string | null;
     const historyJson = formData.get("history") as string | null;
 
@@ -25,9 +23,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!FULL_PIPELINE_LANGUAGES.includes(language)) {
+    const language = getLanguageByCode(languageCode);
+    if (!language) {
       return NextResponse.json(
-        { error: `Language "${language}" does not support the full voice pipeline. Use: ${FULL_PIPELINE_LANGUAGES.join(", ")}` },
+        { error: `Unsupported language: "${languageCode}"` },
         { status: 400 }
       );
     }
@@ -44,13 +43,20 @@ export async function POST(request: NextRequest) {
     let englishQuestion: string;
 
     if (audioFile) {
-      // === VOICE PATH: full chain ===
+      // === VOICE PATH ===
+
+      if (!language.hasASR) {
+        return NextResponse.json(
+          { error: `Speech recognition is not available for ${language.name}` },
+          { status: 400 }
+        );
+      }
 
       // Convert uploaded file to buffer
       const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
       // 1. Transcribe: local language speech -> local text
-      localText = await transcribe(audioBuffer, language);
+      localText = await transcribe(audioBuffer, languageCode);
       if (!localText || localText.trim() === "") {
         return NextResponse.json(
           { error: "Could not transcribe audio. Please speak clearly and try again." },
@@ -59,49 +65,88 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. Translate: local text -> English
-      englishQuestion = await translate(localText, language, "en");
+      if (language.hasTranslate) {
+        englishQuestion = await translate(localText, languageCode, "en");
+      } else {
+        // No NLLB translation available — ask the LLM to interpret directly
+        // The LLM will receive the local text with an instruction to interpret it
+        englishQuestion = localText;
+      }
     } else {
       // === TEXT PATH: skip transcription ===
       const text = textInput!.trim();
 
       if (inputLang === "en") {
-        // English input: translate to local language for display
         englishQuestion = text;
-        localText = await translate(text, "en", language);
+        if (language.hasTranslate) {
+          localText = await translate(text, "en", languageCode);
+        } else {
+          // Can't translate to local — just show English as-is
+          localText = text;
+        }
       } else {
-        // Local language input: translate to English for the tutor
         localText = text;
-        englishQuestion = await translate(text, inputLang, "en");
+        if (language.hasTranslate) {
+          englishQuestion = await translate(text, inputLang, "en");
+        } else {
+          // No translation — pass through to LLM directly
+          englishQuestion = text;
+        }
       }
     }
 
-    // 3. LLM Tutor: English question -> English answer
+    // 3. LLM Tutor: question -> English answer
+    // If no translation was available, tell the tutor the input language
+    const tutorQuestion = language.hasTranslate
+      ? englishQuestion
+      : `[The following is in ${language.name}. Interpret and answer in English]: ${englishQuestion}`;
+
     const englishAnswer = await askTutor(
-      englishQuestion,
+      tutorQuestion,
       topic?.title,
       topic?.facts,
       history
     );
 
     // 4. Translate: English answer -> local language
-    const localAnswer = await translate(englishAnswer, "en", language);
+    let localAnswer: string;
+    if (language.hasTranslate) {
+      localAnswer = await translate(englishAnswer, "en", languageCode);
+    } else {
+      // No NLLB — we'll still try TTS with English answer or skip
+      // Use Swahili as a bridge language since most speakers understand it
+      localAnswer = await translate(englishAnswer, "en", "swh");
+    }
 
-    // 5. TTS: local text -> local language audio
-    const { audioBase64, sampleRate } = await textToSpeech(localAnswer, language);
+    // 5. TTS: generate speech if available
+    let audioBase64: string | null = null;
+    let sampleRate = 16000;
+
+    if (language.hasTTS) {
+      const ttsLang = language.hasTranslate ? languageCode : "swh";
+      const ttsResult = await textToSpeech(localAnswer, ttsLang);
+      audioBase64 = ttsResult.audioBase64;
+      sampleRate = ttsResult.sampleRate;
+    }
 
     return NextResponse.json({
       // Child's input
       childTextLocal: localText,
-      childTextEn: englishQuestion,
+      childTextEn: language.hasTranslate ? englishQuestion : localText,
       // Tutor's response
       tutorTextEn: englishAnswer,
       tutorTextLocal: localAnswer,
-      // Audio response
+      // Audio response (null if TTS not available)
       audioBase64,
       sampleRate,
       // Metadata
       topic: topicId || null,
-      language,
+      language: languageCode,
+      capabilities: {
+        asr: language.hasASR,
+        translate: language.hasTranslate,
+        tts: language.hasTTS,
+      },
     });
   } catch (error) {
     console.error("Pipeline error:", error);

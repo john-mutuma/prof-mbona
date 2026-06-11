@@ -188,6 +188,11 @@ export default function Home() {
         </div>
         {/* Language selector */}
         <LanguageSelector selected={language} onChange={setLanguage} />
+        {language.note && (
+          <p className="text-[11px] text-amber-600 bg-amber-50 px-2 py-1 rounded">
+            ⚠️ {language.name}: {language.note}
+          </p>
+        )}
       </header>
 
       {/* Conversation or welcome */}
