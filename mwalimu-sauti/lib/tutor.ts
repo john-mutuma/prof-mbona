@@ -6,20 +6,28 @@ export interface ChatMessage {
 }
 
 const GENERAL_SYSTEM_PROMPT = `You are Professor Mbona, a warm primary-school teacher for a young child in rural Kenya.
-You are answering a child's spoken question. Rules:
-- Answer in simple English (it will be translated to the child's language).
+You are answering a child's spoken question.
+
+IMPORTANT: You MUST respond in {language_name} ({language_code}). Do NOT respond in English unless the selected language is English.
+
+Rules:
+- Respond ONLY in {language_name}.
 - Keep it to 1–3 short sentences. Use a concrete local analogy (cattle, milk, fire, soil, market, cooking) a Kenyan child would know.
-- Teach the concept first, then name the science term once: "...we call this <term>".
+- Teach the concept first, then introduce the English science term once in brackets: "...({english_term})".
 - End with one short follow-up question to check understanding.
 - Never invent facts. If you are unsure, say so honestly.
 - Be encouraging and patient. Use simple words a 7-year-old would understand.
 - You can answer questions on any school subject: science, math, language, geography, history, etc.`;
 
 const TOPIC_SYSTEM_PROMPT = `You are Professor Mbona, a warm primary-school teacher for a young child in rural Kenya.
-You are answering a child's spoken question. Rules:
-- Answer in simple English (it will be translated to the child's language).
+You are answering a child's spoken question.
+
+IMPORTANT: You MUST respond in {language_name} ({language_code}). Do NOT respond in English unless the selected language is English.
+
+Rules:
+- Respond ONLY in {language_name}.
 - Keep it to 1–3 short sentences. Use a concrete local analogy (cattle, milk, fire, soil, market, cooking) a Kenyan child would know.
-- Teach the concept first, then name the science term once: "...we call this <term>".
+- Teach the concept first, then introduce the English science term once in brackets: "...({english_term})".
 - End with one short follow-up question to check understanding.
 - Never invent facts; stay within the lesson topic provided in context.
 - Be encouraging and patient. Use simple words a 7-year-old would understand.
@@ -29,15 +37,27 @@ Lesson topic: {topic}
 Curriculum facts you may use:
 {rag_snippets}`;
 
-function buildSystemPrompt(topic?: string, facts?: string[]): string {
+function buildSystemPrompt(
+  languageName: string,
+  languageCode: string,
+  topic?: string,
+  facts?: string[]
+): string {
+  let prompt: string;
+
   if (!topic || !facts || facts.length === 0) {
-    return GENERAL_SYSTEM_PROMPT;
+    prompt = GENERAL_SYSTEM_PROMPT;
+  } else {
+    const snippets = facts.map((f, i) => `${i + 1}. ${f}`).join("\n");
+    prompt = TOPIC_SYSTEM_PROMPT.replace("{topic}", topic).replace(
+      "{rag_snippets}",
+      snippets
+    );
   }
-  const snippets = facts.map((f, i) => `${i + 1}. ${f}`).join("\n");
-  return TOPIC_SYSTEM_PROMPT.replace("{topic}", topic).replace(
-    "{rag_snippets}",
-    snippets
-  );
+
+  return prompt
+    .replace(/{language_name}/g, languageName)
+    .replace(/{language_code}/g, languageCode);
 }
 
 let client: OpenAI | null = null;
@@ -60,13 +80,19 @@ function getClient(): OpenAI {
 
 /**
  * Ask the tutor a question and get a response.
- * @param question - The child's question translated to English
+ * The tutor responds directly in the specified language.
+ *
+ * @param question - The child's question (in any language)
+ * @param languageName - Name of the language to respond in (e.g. "Kikuyu", "Swahili")
+ * @param languageCode - ISO code (e.g. "kik", "swh")
  * @param topicTitle - Optional lesson topic title (for grounded mode)
  * @param facts - Optional curriculum facts for grounding
  * @param history - Previous conversation messages (optional)
  */
 export async function askTutor(
   question: string,
+  languageName: string,
+  languageCode: string,
   topicTitle?: string,
   facts?: string[],
   history: ChatMessage[] = []
@@ -74,7 +100,7 @@ export async function askTutor(
   const openai = getClient();
   const model = process.env.LLM_MODEL || "gpt-4o-mini";
 
-  const systemPrompt = buildSystemPrompt(topicTitle, facts);
+  const systemPrompt = buildSystemPrompt(languageName, languageCode, topicTitle, facts);
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
@@ -85,7 +111,7 @@ export async function askTutor(
   const response = await openai.chat.completions.create({
     model,
     messages,
-    max_tokens: 200,
+    max_tokens: 300,
     temperature: 0.7,
   });
 

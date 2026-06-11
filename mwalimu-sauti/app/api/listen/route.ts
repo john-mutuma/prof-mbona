@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
       ? JSON.parse(historyJson)
       : [];
 
-    let localText: string;
-    let englishQuestion: string;
+    let childTextLocal: string;
+    let childTextEn: string;
 
     if (audioFile) {
       // === VOICE PATH ===
@@ -56,86 +56,82 @@ export async function POST(request: NextRequest) {
       const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
       // 1. Transcribe: local language speech -> local text
-      localText = await transcribe(audioBuffer, languageCode);
-      if (!localText || localText.trim() === "") {
+      childTextLocal = await transcribe(audioBuffer, languageCode);
+      if (!childTextLocal || childTextLocal.trim() === "") {
         return NextResponse.json(
           { error: "Could not transcribe audio. Please speak clearly and try again." },
           { status: 422 }
         );
       }
 
-      // 2. Translate: local text -> English
+      // 2. Translate to English for the conversation record
       if (language.hasTranslate) {
-        englishQuestion = await translate(localText, languageCode, "en");
+        childTextEn = await translate(childTextLocal, languageCode, "en");
       } else {
-        // No NLLB translation available — ask the LLM to interpret directly
-        // The LLM will receive the local text with an instruction to interpret it
-        englishQuestion = localText;
+        // No NLLB — provide both to the LLM, it will interpret
+        childTextEn = childTextLocal;
       }
     } else {
       // === TEXT PATH: skip transcription ===
       const text = textInput!.trim();
 
       if (inputLang === "en") {
-        englishQuestion = text;
+        childTextEn = text;
         if (language.hasTranslate) {
-          localText = await translate(text, "en", languageCode);
+          childTextLocal = await translate(text, "en", languageCode);
         } else {
-          // Can't translate to local — just show English as-is
-          localText = text;
+          childTextLocal = text;
         }
       } else {
-        localText = text;
+        childTextLocal = text;
         if (language.hasTranslate) {
-          englishQuestion = await translate(text, inputLang, "en");
+          childTextEn = await translate(text, inputLang, "en");
         } else {
-          // No translation — pass through to LLM directly
-          englishQuestion = text;
+          childTextEn = text;
         }
       }
     }
 
-    // 3. LLM Tutor: question -> English answer
-    // If no translation was available, tell the tutor the input language
-    const tutorQuestion = language.hasTranslate
-      ? englishQuestion
-      : `[The following is in ${language.name}. Interpret and answer in English]: ${englishQuestion}`;
-
-    const englishAnswer = await askTutor(
-      tutorQuestion,
+    // 3. LLM Tutor: responds directly in the selected language
+    // Pass the child's message in local language so the LLM can respond naturally
+    const tutorResponse = await askTutor(
+      childTextLocal,
+      language.name,
+      languageCode,
       topic?.title,
       topic?.facts,
       history
     );
 
-    // 4. Translate: English answer -> local language
-    let localAnswer: string;
+    // The tutor already responds in the target language
+    const tutorTextLocal = tutorResponse;
+
+    // Get English translation of tutor response for display/records
+    let tutorTextEn: string;
     if (language.hasTranslate) {
-      localAnswer = await translate(englishAnswer, "en", languageCode);
+      tutorTextEn = await translate(tutorResponse, languageCode, "en");
     } else {
-      // No NLLB — we'll still try TTS with English answer or skip
-      // Use Swahili as a bridge language since most speakers understand it
-      localAnswer = await translate(englishAnswer, "en", "swh");
+      // Ask LLM responded in local language; try translating via Swahili bridge or just show as-is
+      tutorTextEn = tutorResponse;
     }
 
-    // 5. TTS: generate speech if available
+    // 4. TTS: generate speech if available
     let audioBase64: string | null = null;
     let sampleRate = 16000;
 
     if (language.hasTTS) {
-      const ttsLang = language.hasTranslate ? languageCode : "swh";
-      const ttsResult = await textToSpeech(localAnswer, ttsLang);
+      const ttsResult = await textToSpeech(tutorTextLocal, languageCode);
       audioBase64 = ttsResult.audioBase64;
       sampleRate = ttsResult.sampleRate;
     }
 
     return NextResponse.json({
       // Child's input
-      childTextLocal: localText,
-      childTextEn: language.hasTranslate ? englishQuestion : localText,
+      childTextLocal,
+      childTextEn,
       // Tutor's response
-      tutorTextEn: englishAnswer,
-      tutorTextLocal: localAnswer,
+      tutorTextEn,
+      tutorTextLocal,
       // Audio response (null if TTS not available)
       audioBase64,
       sampleRate,
