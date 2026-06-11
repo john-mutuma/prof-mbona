@@ -64,11 +64,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 2. Translate to English for the conversation record
+      // 2. Translate child's input to English for display
       if (language.hasTranslate) {
         childTextEn = await translate(childTextLocal, languageCode, "en");
       } else {
-        // No NLLB - provide both to the LLM, it will interpret
         childTextEn = childTextLocal;
       }
     } else {
@@ -92,9 +91,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. LLM Tutor: responds directly in the selected language
-    // Pass the child's message in local language so the LLM can respond naturally
-    const tutorResponse = await askTutor(
+    // 3. LLM Tutor: returns both local language + English in one call
+    const tutorResult = await askTutor(
       childTextLocal,
       language.name,
       languageCode,
@@ -103,17 +101,8 @@ export async function POST(request: NextRequest) {
       history
     );
 
-    // The tutor already responds in the target language
-    const tutorTextLocal = tutorResponse;
-
-    // Get English translation of tutor response for display/records
-    let tutorTextEn: string;
-    if (language.hasTranslate) {
-      tutorTextEn = await translate(tutorResponse, languageCode, "en");
-    } else {
-      // Ask LLM responded in local language; try translating via Swahili bridge or just show as-is
-      tutorTextEn = tutorResponse;
-    }
+    const tutorTextLocal = tutorResult.local;
+    const tutorTextEn = tutorResult.english;
 
     // 4. TTS: generate speech if available
     let audioBase64: string | null = null;
@@ -138,11 +127,6 @@ export async function POST(request: NextRequest) {
       // Metadata
       topic: topicId || null,
       language: languageCode,
-      capabilities: {
-        asr: language.hasASR,
-        translate: language.hasTranslate,
-        tts: language.hasTTS,
-      },
     });
   } catch (error) {
     console.error("Pipeline error:", error);
