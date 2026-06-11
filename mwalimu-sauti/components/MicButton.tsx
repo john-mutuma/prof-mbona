@@ -6,12 +6,18 @@ interface MicButtonProps {
   onRecordingComplete: (blob: Blob) => void;
   disabled?: boolean;
   isProcessing?: boolean;
+  labelSpeak?: string;
+  labelStop?: string;
+  labelThinking?: string;
 }
 
 export default function MicButton({
   onRecordingComplete,
   disabled = false,
   isProcessing = false,
+  labelSpeak = "Tap to speak",
+  labelStop = "Tap to stop",
+  labelThinking = "Thinking...",
 }: MicButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -156,10 +162,10 @@ export default function MicButton({
       {/* Label below */}
       <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm font-medium text-gray-600 whitespace-nowrap">
         {isRecording
-          ? "Tap to stop"
+          ? labelStop
           : isProcessing
-          ? "Thinking..."
-          : "Tap to speak"}
+          ? labelThinking
+          : labelSpeak}
       </span>
     </button>
   );

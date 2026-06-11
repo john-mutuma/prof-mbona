@@ -66,9 +66,9 @@ export default function ConversationThread({
             <p className="text-base leading-relaxed">{msg.textKik}</p>
 
             {/* English translation (smaller, muted) */}
-            {showTranslations && (
+            {showTranslations && msg.textEn !== msg.textKik && (
               <p className="text-xs text-gray-400 mt-2 italic border-t border-gray-100 pt-2">
-                {msg.textEn}
+                <span className="not-italic font-medium text-gray-300 mr-1">EN:</span>{msg.textEn}
               </p>
             )}
           </div>

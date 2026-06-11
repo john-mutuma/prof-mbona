@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       childTextLocal,
       language.name,
       languageCode,
-      topic?.title,
+      topic?.title.en,
       topic?.facts,
       history
     );

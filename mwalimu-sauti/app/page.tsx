@@ -7,7 +7,7 @@ import LanguageSelector from "@/components/LanguageSelector";
 import ConversationThread, { Message } from "@/components/ConversationThread";
 import AudioPlayer from "@/components/AudioPlayer";
 import PipelineStatus from "@/components/PipelineStatus";
-import { TOPICS, Topic } from "@/lib/curriculum";
+import { TOPICS, Topic, getTopicTitle, getTopicDescription } from "@/lib/curriculum";
 import { Language, SUPPORTED_LANGUAGES } from "@/lib/languages";
 
 // Emoji constants using Unicode escapes to avoid encoding issues on Windows
@@ -174,7 +174,7 @@ export default function Home() {
 
   const handleTopicSuggestion = (topic: Topic) => {
     setActiveTopic(topic);
-    handleTextSubmit(topic.title + "?", "en");
+    handleTextSubmit(getTopicTitle(topic, language.code) + "?", "kik");
   };
 
   const isProcessing = stage !== "idle" && stage !== "done" && stage !== "error";
@@ -199,7 +199,7 @@ export default function Home() {
                 Professor Mbona
               </h1>
               <p className="text-xs text-gray-500">
-                Speak or Type in {language.name}
+                {language.ui.speakOrType}
               </p>
             </div>
           </button>
@@ -212,7 +212,7 @@ export default function Home() {
                 className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
                 title="Clear topic focus"
               >
-                {activeTopic.icon} <span className="hidden sm:inline">{activeTopic.title}</span> {EMOJI.close}
+                {activeTopic.icon} <span className="hidden sm:inline">{getTopicTitle(activeTopic, language.code)}</span> {EMOJI.close}
               </button>
             )}
             <LanguageSelector selected={language} onChange={setLanguage} />
@@ -236,17 +236,16 @@ export default function Home() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
           <p className="text-5xl mb-4">{EMOJI.teacher}</p>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">
-            Habari! I&apos;m Professor Mbona
+            {language.ui.greeting}
           </h2>
           <p className="text-gray-500 text-center mb-8 max-w-sm">
-            Ask me any question {"\u2014"} about science, math, nature, anything!
-            Speak or type in {language.name}.
+            {language.ui.heroSubtitle}
           </p>
 
           {/* Suggested topics */}
           <div className="w-full max-w-sm">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-3 text-center">
-              Try asking about...
+              {language.ui.tryAsking}
             </p>
             <div className="grid gap-2">
               {TOPICS.map((topic) => (
@@ -261,9 +260,9 @@ export default function Home() {
                   <span className="text-2xl">{topic.icon}</span>
                   <div>
                     <p className="text-sm font-medium text-gray-700">
-                      {topic.title}
+                      {getTopicTitle(topic, language.code)}
                     </p>
-                    <p className="text-xs text-gray-400">{topic.titleKikuyu}</p>
+                    <p className="text-xs text-gray-400">{getTopicDescription(topic, language.code)}</p>
                   </div>
                 </button>
               ))}
@@ -309,6 +308,9 @@ export default function Home() {
             <MicButton
               onRecordingComplete={handleRecordingComplete}
               isProcessing={isProcessing}
+              labelSpeak={language.ui.tapToSpeak}
+              labelStop={language.ui.tapToStop}
+              labelThinking={language.ui.thinking}
             />
             <div className="h-4" />
           </div>
@@ -318,6 +320,7 @@ export default function Home() {
             disabled={isProcessing}
             languageName={language.name}
             languageCode={language.code}
+            placeholder={language.ui.typePlaceholder}
           />
         )}
       </div>
